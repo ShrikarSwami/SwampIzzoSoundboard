@@ -1,0 +1,72 @@
+{
+  "startup_audio": "assets/audio/startup_swamp_izzo.wav",
+  "app": {
+    "window_width": 420,
+    "window_height": 420
+  },
+  "keys": {
+    "1": {
+      "label": "Sound 1",
+      "clips": [
+        "assets/audio/sound_1.wav"
+      ],
+      "reset_seconds": 10
+    },
+    "2": {
+      "label": "Sound 2",
+      "clips": [
+        "assets/audio/sound_2.wav"
+      ],
+      "reset_seconds": 10
+    },
+    "3": {
+      "label": "Sound 3",
+      "clips": [
+        "assets/audio/sound_3.wav"
+      ],
+      "reset_seconds": 10
+    },
+    "4": {
+      "label": "Sound 4",
+      "clips": [
+        "assets/audio/sound_4.wav"
+      ],
+      "reset_seconds": 10
+    },
+    "5": {
+      "label": "Sound 5",
+      "clips": [
+        "assets/audio/sound_5.wav"
+      ],
+      "reset_seconds": 10
+    },
+    "6": {
+      "label": "Sound 6",
+      "clips": [
+        "assets/audio/sound_6.wav"
+      ],
+      "reset_seconds": 10
+    },
+    "7": {
+      "label": "Sound 7",
+      "clips": [
+        "assets/audio/sound_7.wav"
+      ],
+      "reset_seconds": 10
+    },
+    "8": {
+      "label": "Sound 8",
+      "clips": [
+        "assets/audio/sound_8.wav"
+      ],
+      "reset_seconds": 10
+    },
+    "9": {
+      "label": "Sound 9",
+      "clips": [
+        "assets/audio/sound_9.wav"
+      ],
+      "reset_seconds": 10
+    }
+  }
+}
