@@ -45,7 +45,7 @@ exe = EXE(
 app = BUNDLE(
     exe,
     name='Swamp Izzo.app',
-    icon=None,
+    icon='assets/app_icon.icns',
     bundle_identifier='com.swampizzo.soundboard',
     info_plist={
         'NSPrincipalClass': 'NSApplication',
