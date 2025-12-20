@@ -8,6 +8,7 @@ import queue
 import time
 import wave
 import io
+import sys
 
 try:
     import simpleaudio as sa
@@ -32,6 +33,19 @@ class AudioCache:
         self._cache: Dict[str, bytes] = {}
         self._running = True
     
+    def _resolve_path(self, file_path: str) -> Path:
+        """Resolve relative paths to absolute within app bundle or project.
+        """
+        p = Path(file_path)
+        if p.is_absolute():
+            return p
+        # Resolve against PyInstaller temp dir when frozen, else project root
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            base = Path(getattr(sys, '_MEIPASS'))
+        else:
+            base = Path(__file__).resolve().parent.parent
+        return (base / p).resolve()
+
     def load_audio_file(self, file_path: str) -> bytes:
         """Load audio file into cache.
         
@@ -41,7 +55,7 @@ class AudioCache:
         Returns:
             Raw audio bytes
         """
-        file_path = str(file_path)
+        file_path = str(self._resolve_path(file_path))
         
         if file_path in self._cache:
             logger.debug(f"Audio cache hit: {file_path}")

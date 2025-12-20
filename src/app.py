@@ -1,6 +1,7 @@
 """Main entry point for the Swamp Izzo Soundboard application."""
 
 import sys
+import os
 import logging
 import time
 from pathlib import Path
@@ -8,18 +9,41 @@ from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 from PySide6.QtGui import QFont
 from PySide6.QtCore import Qt
 
-from .config import Config
-from .ui import SoundboardWindow
-from .hotkeys import start_hotkeys, register_hotkey, stop_hotkeys
-from .audio import play_audio, preload_audio, get_audio_cache
+# Support running both as a package (python -m src.app) and as a frozen app bundle
+try:
+    from .config import Config
+    from .ui import SoundboardWindow
+    from .hotkeys import start_hotkeys, register_hotkey, stop_hotkeys
+    from .audio import play_audio, preload_audio, get_audio_cache
+except Exception:
+    # Fallback for PyInstaller where relative imports don't resolve
+    root_dir = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(root_dir.parent))  # allow `import src.*`
+    from src.config import Config  # type: ignore
+    from src.ui import SoundboardWindow  # type: ignore
+    from src.hotkeys import start_hotkeys, register_hotkey, stop_hotkeys  # type: ignore
+    from src.audio import play_audio, preload_audio, get_audio_cache  # type: ignore
 
-# Setup logging
+# Setup logging to a user-writable location
+def _log_file_path() -> Path:
+    try:
+        if sys.platform == 'darwin':
+            base = Path.home() / 'Library' / 'Logs' / 'SwampIzzo'
+        elif sys.platform.startswith('win'):
+            base = Path(os.environ.get('APPDATA', Path.home())) / 'SwampIzzo' / 'Logs'
+        else:
+            base = Path.home() / '.swamp_izzo' / 'logs'
+        base.mkdir(parents=True, exist_ok=True)
+        return base / 'soundboard.log'
+    except Exception:
+        return Path('soundboard.log')
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('soundboard.log')
+        logging.FileHandler(_log_file_path())
     ]
 )
 logger = logging.getLogger(__name__)
@@ -37,8 +61,12 @@ class LoadingScreen(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Try to use glass panel as background
-        assets_path = Path(__file__).parent.parent / 'assets' / 'ui'
+        # Determine assets path (works for both dev and frozen build)
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            base_path = Path(getattr(sys, '_MEIPASS'))
+        else:
+            base_path = Path(__file__).parent.parent
+        assets_path = base_path / 'assets' / 'ui'
         bg_path = assets_path / 'glass_panel.png'
         
         if bg_path.exists():
@@ -146,7 +174,17 @@ class SoundboardApp:
     def create_main_window(self):
         """Create and show the main window."""
         logger.info("Creating main window")
-        self.main_window = SoundboardWindow(self.config, self._on_hotkey)
+        # Determine assets root for UI package API (expects assets directory)
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            base_path = Path(getattr(sys, '_MEIPASS'))
+        else:
+            base_path = Path(__file__).parent.parent
+        assets_root = base_path / 'assets'
+        try:
+            self.main_window = SoundboardWindow(assets_root)
+        except TypeError:
+            # Fallback to legacy signature SoundboardWindow(config, callback)
+            self.main_window = SoundboardWindow(self.config)
         self.main_window.show()
     
     def run(self):
@@ -166,11 +204,20 @@ class SoundboardApp:
             # Hide loading screen
             self.hide_loading_screen()
             
-            # Setup hotkeys
-            self.setup_hotkeys()
-            
-            # Create and show main window
+            # Create and show main window first so users see UI even if hotkeys fail
             self.create_main_window()
+            
+            # Setup hotkeys (skip by default on macOS to avoid TCC crash without permissions)
+            enable_hotkeys = True
+            if sys.platform == 'darwin' and os.environ.get('SWAMP_IZZO_ENABLE_HOTKEYS', '0') != '1':
+                enable_hotkeys = False
+                logger.warning("Hotkeys disabled by default on macOS. Grant Accessibility permission and set SWAMP_IZZO_ENABLE_HOTKEYS=1 to enable.")
+            
+            if enable_hotkeys:
+                try:
+                    self.setup_hotkeys()
+                except Exception as e:
+                    logger.error(f"Failed to start global hotkeys: {e}")
             
             logger.info("Application ready")
             

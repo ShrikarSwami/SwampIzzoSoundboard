@@ -3,7 +3,7 @@
 
 a = Analysis(
     ['src/app.py'],
-    pathex=[],
+    pathex=['src'],
     binaries=[],
     datas=[
         ('assets/ui', 'assets/ui'),
